@@ -1,19 +1,23 @@
 const express = require("express");
+require("dotenv").config({ path: "./config/config.env" }); // setting up config.env file variables
+
+//-----------INTERNAL IMPORT
+//-----DB IMPORT
+const connectDb = require("./config/database");
+//-----MIDDLEWARE IMPORT
+const errorHandler = require("./middlewares/errors");
+//-----ROUTES IMPORT
+const jobs = require("./routes/jobs");
+
 const app = express();
 app.use(express.json());
-
-const dotenv = require("dotenv");
-// setting up config.env file variables
-dotenv.config({ path: "./config/config.env" });
-
 // connecting to database
-const connectDb = require("./config/database");
 connectDb();
-
-// importing all routes
-const jobs = require("./routes/jobs");
+// configuring routes
 app.use("/api/v1", jobs);
+app.use(errorHandler);
 
+// server listening
 const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(
