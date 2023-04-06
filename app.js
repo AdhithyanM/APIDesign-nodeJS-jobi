@@ -5,7 +5,8 @@ require("dotenv").config({ path: "./config/config.env" }); // setting up config.
 //-----DB IMPORT
 const connectDb = require("./config/database");
 //-----MIDDLEWARE IMPORT
-const errorHandler = require("./middlewares/errors");
+const errorMiddleware = require("./middlewares/errors");
+const ErrorHandler = require("./utils/errorHandler");
 //-----ROUTES IMPORT
 const jobs = require("./routes/jobs");
 
@@ -23,7 +24,10 @@ process.on("uncaughtException", (err) => {
 connectDb();
 // configuring routes
 app.use("/api/v1", jobs);
-app.use(errorHandler);
+app.use("*", (req, res, next) => {
+  next(new ErrorHandler(`${req.originalUrl} route not found.`, 404));
+});
+app.use(errorMiddleware);
 
 // server listening
 const PORT = process.env.PORT;
