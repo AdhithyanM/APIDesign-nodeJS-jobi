@@ -11,6 +11,14 @@ const jobs = require("./routes/jobs");
 
 const app = express();
 app.use(express.json());
+
+// Handling Uncaught Exception  - should be on top
+process.on("uncaughtException", (err) => {
+  console.log(`ERROR: ${err.message}`);
+  console.log("Shutting down due to uncaught exception.");
+  process.exit(1);
+});
+
 // connecting to database
 connectDb();
 // configuring routes
