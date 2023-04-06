@@ -32,7 +32,7 @@ const jobSchema = new mongoose.Schema({
     enum: {
       values: [
         "Business",
-        "Information Technologies",
+        "Information Technology",
         "Banking",
         "Education/Training",
         "Telecommunication",
