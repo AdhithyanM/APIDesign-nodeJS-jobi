@@ -5,6 +5,10 @@ const dotenv = require("dotenv");
 // setting up config.env file variables
 dotenv.config({ path: "./config/config.env" });
 
+// connecting to database
+const connectDb = require("./config/database");
+connectDb();
+
 // importing all routes
 const jobs = require("./routes/jobs");
 app.use("/api/v1", jobs);
