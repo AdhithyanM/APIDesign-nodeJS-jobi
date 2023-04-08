@@ -9,6 +9,7 @@ const errorMiddleware = require("./middlewares/errors");
 const ErrorHandler = require("./utils/errorHandler");
 //-----ROUTES IMPORT
 const jobs = require("./routes/jobs");
+const auth = require("./routes/auth");
 
 const app = express();
 app.use(express.json());
@@ -24,6 +25,7 @@ process.on("uncaughtException", (err) => {
 connectDb();
 // configuring routes
 app.use("/api/v1", jobs);
+app.use("/api/v1", auth);
 app.use("*", (req, res, next) => {
   next(new ErrorHandler(`${req.originalUrl} route not found.`, 404));
 });
