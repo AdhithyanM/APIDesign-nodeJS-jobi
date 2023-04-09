@@ -1,5 +1,6 @@
 const express = require("express");
 require("dotenv").config({ path: "./config/config.env" }); // setting up config.env file variables
+const cookieParser = require("cookie-parser");
 
 //-----------INTERNAL IMPORT
 //-----DB IMPORT
@@ -13,6 +14,8 @@ const auth = require("./routes/auth");
 
 const app = express();
 app.use(express.json());
+// Set Cookie Parser
+app.use(cookieParser());
 
 // Handling Uncaught Exception  - should be on top
 process.on("uncaughtException", (err) => {
