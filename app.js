@@ -1,6 +1,7 @@
 const express = require("express");
 require("dotenv").config({ path: "./config/config.env" }); // setting up config.env file variables
 const cookieParser = require("cookie-parser");
+const fileUpload = require("express-fileupload");
 
 //-----------INTERNAL IMPORT
 //-----DB IMPORT
@@ -17,6 +18,8 @@ const app = express();
 app.use(express.json());
 // Set Cookie Parser
 app.use(cookieParser());
+// Handle File Uploads
+app.use(fileUpload());
 
 // Handling Uncaught Exception  - should be on top
 process.on("uncaughtException", (err) => {
