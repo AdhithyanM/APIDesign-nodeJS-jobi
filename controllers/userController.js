@@ -127,7 +127,6 @@ exports.deleteUserAdmin = catchAsyncErrors(async (req, res, next) => {
     );
   }
 
-  console.log(user);
   await deleteUserData(user.id, user.role);
   await user.deleteOne();
 
@@ -162,7 +161,7 @@ async function deleteUserData(userId, role) {
       const indx = appliedJobs[i].applicantsApplied.indexOf(obj.id);
       appliedJobs[i].applicantsApplied.splice(indx);
 
-      appliedJobs[i].save();
+      await appliedJobs[i].save();
     }
   }
 }
