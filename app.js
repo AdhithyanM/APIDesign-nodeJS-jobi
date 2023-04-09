@@ -11,6 +11,7 @@ const ErrorHandler = require("./utils/errorHandler");
 //-----ROUTES IMPORT
 const jobs = require("./routes/jobs");
 const auth = require("./routes/auth");
+const user = require("./routes/user");
 
 const app = express();
 app.use(express.json());
@@ -29,6 +30,7 @@ connectDb();
 // configuring routes
 app.use("/api/v1", jobs);
 app.use("/api/v1", auth);
+app.use("/api/v1", user);
 app.use("*", (req, res, next) => {
   next(new ErrorHandler(`${req.originalUrl} route not found.`, 404));
 });
