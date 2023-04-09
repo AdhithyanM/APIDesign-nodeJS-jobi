@@ -1,3 +1,4 @@
+const fs = require("fs");
 const Job = require("../models/jobs");
 const geoCoder = require("../utils/geocoder");
 const ErrorHandler = require("../utils/errorHandler");
@@ -72,6 +73,15 @@ exports.updateJob = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Job not found", 404));
   }
 
+  // check if the user is owner
+  if (job.user.toString() !== req.user.id && req.user.role !== "admin") {
+    return next(
+      new ErrorHandler(
+        `User(${req.user.id}) is not allowed to update this job.`
+      )
+    );
+  }
+
   job = await Job.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
     runValidators: true,
@@ -86,10 +96,32 @@ exports.updateJob = catchAsyncErrors(async (req, res, next) => {
 
 // Delete a Job => /api/v1/job/:id
 exports.deleteJob = catchAsyncErrors(async (req, res, next) => {
-  let job = await Job.findById(req.params.id);
+  let job = await Job.findById(req.params.id).select("+applicantsApplied");
 
   if (!job) {
     return next(new ErrorHandler("Job not found", 404));
+  }
+
+  // check if the user is owner
+  if (job.user.toString() !== req.user.id && req.user.role !== "admin") {
+    return next(
+      new ErrorHandler(
+        `User(${req.user.id}) is not allowed to update this job.`
+      )
+    );
+  }
+
+  // Deleting files associated with this job
+  for (let i = 0; i < job.applicantsApplied.length; i++) {
+    let filePath =
+      `${__dirname}/public/uploads/${job.applicantsApplied[i].resume}`.replace(
+        "/controllers",
+        ""
+      );
+
+    fs.unlink(filePath, (err) => {
+      if (err) return console.log(err);
+    });
   }
 
   job = await Job.findByIdAndDelete(req.params.id);
@@ -104,6 +136,9 @@ exports.deleteJob = catchAsyncErrors(async (req, res, next) => {
 exports.getJob = catchAsyncErrors(async (req, res, next) => {
   const job = await Job.find({
     $and: [{ _id: req.params.id }, { slug: req.params.slug }],
+  }).populate({
+    path: "user",
+    select: "name",
   });
 
   if (!job) {
@@ -168,7 +203,7 @@ exports.applyJob = catchAsyncErrors(async (req, res, next) => {
   }
 
   // Check if user has applied before
-  for (let i = 0; i <= job.applicantsApplied.length; i++) {
+  for (let i = 0; i < job.applicantsApplied.length; i++) {
     if (job.applicantsApplied[i].id === req.user.id) {
       return next(
         new ErrorHandler("You have already applied for this job", 400)

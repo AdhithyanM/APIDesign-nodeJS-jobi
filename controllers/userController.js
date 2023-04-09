@@ -1,11 +1,17 @@
+const fs = require("fs");
 const User = require("../models/users");
+const Job = require("../models/jobs");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
 const ErrorHandler = require("../utils/errorHandler");
 const sendToken = require("../utils/jwtToken");
+const APIFilters = require("../utils/apiFilters");
 
 // Get current user profile => /api/v1/me
 exports.getUserProfile = catchAsyncErrors(async (req, res, next) => {
-  const user = await User.findById(req.user.id);
+  const user = await User.findById(req.user.id).populate({
+    path: "jobsPublished",
+    select: "title postingDate",
+  });
 
   res.status(200).json({
     success: true,
@@ -49,6 +55,8 @@ exports.updateUser = catchAsyncErrors(async (req, res, next) => {
 
 // Delete current user => /api/v1/me/delete
 exports.deleteUser = catchAsyncErrors(async (req, res, next) => {
+  deleteUserData(req.user.id, req.user.role);
+
   const user = await User.findByIdAndDelete(req.user.id);
 
   res.cookie("token", "none", {
@@ -61,3 +69,100 @@ exports.deleteUser = catchAsyncErrors(async (req, res, next) => {
     message: "Your account has been deleted",
   });
 });
+
+// Show all applied jobs => /api/v1/jobs/applied
+exports.getAppliedJobs = catchAsyncErrors(async (req, res, next) => {
+  const jobs = await Job.find({ "applicantsApplied.id": req.user.id });
+
+  res.status(200).json({
+    success: true,
+    data: {
+      entities: jobs,
+      total: jobs.length,
+    },
+  });
+});
+
+// Show all jobs published by employer => /api/v1/jobs/published
+exports.getPublishedJobs = catchAsyncErrors(async (req, res, next) => {
+  const jobs = await Job.find({ user: req.user.id });
+
+  res.status(200).json({
+    success: true,
+    data: {
+      entities: jobs,
+      total: jobs.length,
+    },
+  });
+});
+
+// Adding controller methods that are only accessible by admins
+
+// show all users => /api/v1/users
+exports.getUsers = catchAsyncErrors(async (req, res, next) => {
+  const apiFilters = new APIFilters(User.find(), req.query)
+    .filter()
+    .sort()
+    .limitFields()
+    .pagination();
+
+  const users = await apiFilters.query;
+
+  res.status(200).json({
+    success: true,
+    data: {
+      entities: users,
+      total: users.length,
+    },
+  });
+});
+
+// Delete User (Admin)   => /api/v1/user/:id
+exports.deleteUserAdmin = catchAsyncErrors(async (req, res, next) => {
+  const user = await User.findById(req.params.id);
+
+  if (!user) {
+    return next(
+      new ErrorHandler(`User not found with id: ${req.params.id}`, 404)
+    );
+  }
+
+  console.log(user);
+  await deleteUserData(user.id, user.role);
+  await user.deleteOne();
+
+  res.status(200).json({
+    success: true,
+    message: "User got deleted successfully by admin.",
+  });
+});
+
+// Delete user files and employer jobs
+async function deleteUserData(userId, role) {
+  if (role === "employer") {
+    await Job.deleteMany({ user: userId });
+  }
+  if (role === "user") {
+    const appliedJobs = await Job.find({
+      "applicantsApplied.id": userId,
+    }).select("+applicantsApplied");
+
+    for (let i = 0; i < appliedJobs.length; i++) {
+      let obj = appliedJobs[i].applicantsApplied.find((o) => o.id === userId);
+
+      let filePath = `${__dirname}/public/uploads/${obj.resume}`.replace(
+        "/controllers",
+        ""
+      );
+
+      fs.unlink(filePath, (err) => {
+        if (err) return console.log(err);
+      });
+
+      const indx = appliedJobs[i].applicantsApplied.indexOf(obj.id);
+      appliedJobs[i].applicantsApplied.splice(indx);
+
+      appliedJobs[i].save();
+    }
+  }
+}
